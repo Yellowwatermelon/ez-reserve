@@ -1,0 +1,46 @@
+{
+  "name": "new-ez-reserve",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@heroicons/react": "2.0.18",
+    "encoding": "0.1.13",
+    "googleapis": "126.0.1",
+    "html2canvas": "1.4.1",
+    "next": "13.5.6",
+    "node-fetch": "3.3.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-icons": "4.11.0",
+    "react-lottie-player": "1.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "18.17.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "autoprefixer": "10.4.15",
+    "eslint": "8.56.0",
+    "eslint-config-next": "13.5.6",
+    "eslint-plugin-react": "7.33.2",
+    "postcss": "8.4.28",
+    "tailwindcss": "3.3.3",
+    "typescript": "5.1.6"
+  },
+  "resolutions": {
+    "next": "13.5.6",
+    "@vercel/next": "13.5.6"
+  },
+  "overrides": {
+    "next": "13.5.6"
+  }
+}
