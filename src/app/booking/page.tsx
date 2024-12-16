@@ -239,6 +239,12 @@ export default function Booking() {
         return;
       }
 
+      console.log('📝 [DEBUG] 예약 요청:', {
+        selectedDate,
+        selectedTime,
+        region: userRegion
+      });
+
       const response = await fetch('/api/booking/test', {
         method: 'POST',
         headers: {
@@ -253,9 +259,16 @@ export default function Booking() {
       });
 
       const result = await response.json();
+      console.log('📝 [DEBUG] 예약 응답:', result);
 
-      if (result.success) {
-        router.push('/complete');
+      if (result.success && result.data) {
+        // 예약 데이터 저장
+        localStorage.setItem('bookingDate', result.data.encryptedDate);
+        localStorage.setItem('bookingTime', result.data.encryptedTime);
+        localStorage.setItem('bookingTimestamp', result.data.encryptedTimestamp);
+        
+        setIsModalOpen(false);
+        router.push('/complete');  // complete 페이지로 이동
       } else {
         setError(result.error || '예약 처리 중 오류가 발생했습니다');
         setIsModalOpen(false);
