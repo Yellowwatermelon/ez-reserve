@@ -132,9 +132,14 @@ export default function Booking() {
         const timesForEarliestDate = normalizedData
           .filter((item: ScheduleItem) => item.날짜 === earliestDate)
           .map((item: ScheduleItem) => item.시간)
-          .sort();
+          .sort((a, b) => {
+            // 24시간 형식으로 변환하여 비교
+            const [aHour, aMin] = a.split(':').map(Number);
+            const [bHour, bMin] = b.split(':').map(Number);
+            return (aHour * 60 + aMin) - (bHour * 60 + bMin);
+          });
 
-        console.log('첫 번째 날짜의 시간대:', timesForEarliestDate); // 디버깅용
+        console.log('정렬된 시간대:', timesForEarliestDate); // 디버깅용
 
         setSelectedDate(new Date(earliestDate));
         setSelectedTimes(timesForEarliestDate);
@@ -183,12 +188,15 @@ export default function Booking() {
       setSelectedDate(date);
       setSelectedTime(null);
       
-      // API를 다시 호출하지 않고 기존 scheduleData에서 필터링
       const standardizedDate = standardizeDate(date.toISOString());
       const times = scheduleData
         .filter((row) => row.날짜 === standardizedDate)
         .map((row) => row.시간)
-        .sort();
+        .sort((a, b) => {
+          const [aHour, aMin] = a.split(':').map(Number);
+          const [bHour, bMin] = b.split(':').map(Number);
+          return (aHour * 60 + aMin) - (bHour * 60 + bMin);
+        });
       
       console.log('선택된 날짜의 시간대:', times);
       
