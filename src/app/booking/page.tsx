@@ -338,7 +338,7 @@ export default function Booking() {
               <p className="mb-4 text-xl font-bold">선택 예약일 확인</p>
               <div className="mb-6 space-y-2">
                 <p>날짜: {selectedDate ? 
-                  `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 (${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]})` 
+                  `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}�� (${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]})` 
                   : ""}</p>
                 <p>시간: {selectedTime ? 
                   new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString('ko-KR', {

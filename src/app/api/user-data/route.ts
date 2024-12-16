@@ -25,6 +25,16 @@ const fetchUserDataWithRetry = async (sheets: any, spreadsheetId: string) => {
 
 export async function GET(request: Request): Promise<NextResponse<SheetApiResponse>> {
   try {
+    // API 키 확인
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== process.env.NEXT_PUBLIC_API_KEY) {
+      console.error('🚨 [ERROR] 잘못된 API 키:', apiKey);
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
     if (!spreadsheetId) {
       throw new Error("GOOGLE_SHEET_ID is not defined");
@@ -52,9 +62,9 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('Google Sheets API Error:', error);
+    console.error('🚨 [ERROR] 사용자 데이터 조회 실패:', error);
     return NextResponse.json(
-      { error: "Failed to fetch Google Sheet data" },
+      { error: '사용자 데이터를 불러오는데 실패했습니다' },
       { status: 500 }
     );
   }
