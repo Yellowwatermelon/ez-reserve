@@ -80,6 +80,10 @@ class BookingManager {
     try {
       console.log(`📊 [DEBUG] 시트 데이터 조회 시도 (${retryCount + 1}회차)`);
       const sheets = await this.initSheets();
+      
+      if (!sheets) {
+        throw new Error('Google Sheets 클라이언트 초기화 실패');
+      }
 
       // 시트 정보 조회
       const sheetInfo = await sheets.spreadsheets.get({
@@ -98,7 +102,7 @@ class BookingManager {
       // 시트 ID를 사용하여 데이터 조회
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `'${this.SHEET_NAME}'!${this.COLUMN_RANGE}`,  // 작은따옴표로 시트 이름 감싸기
+        range: `'${this.SHEET_NAME}'!${this.COLUMN_RANGE}`,
       });
 
       console.log('📊 [DEBUG] 조회된 데이터:', response.data.values);
