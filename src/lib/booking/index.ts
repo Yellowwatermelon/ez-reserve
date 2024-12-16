@@ -244,30 +244,13 @@ class BookingManager {
       const rowIndex = this.findBookingRow(data, standardizedDate, standardizedTime, region);
       const actualRow = rowIndex + 1;
 
-      // 2. 잠금 설정
-      console.log('🔒 [DEBUG] 잠금 설정 시작');
-      const lockTimestamp = new Date().toISOString();
-      await this.updateCell(
-        `예약현황!C${actualRow}`,
-        '예약중'
-      );
-      await this.updateCell(
-        `예약현황!E${actualRow}`,
-        lockTimestamp
-      );
-      console.log('✅ [DEBUG] 잠금 설정 완료');
-
-      // 3. 최종 예약 처리
-      console.log('📝 [DEBUG] 최종 예약 처리 시작');
+      // 최종 예약 처리
+      console.log('📝 [DEBUG] 예약 처리 시작');
       await this.updateCell(
         `예약현황!C${actualRow}`,
         '예약완료'
       );
-      await this.updateCell(
-        `예약현황!E${actualRow}`,
-        ''
-      );
-      console.log('✅ [DEBUG] 최종 예약 처리 완료');
+      console.log('✅ [DEBUG] 예약 처리 완료');
 
       console.log('📝 [DEBUG] 예약 데이터 저장:', {
         date: standardizedDate,
@@ -287,31 +270,6 @@ class BookingManager {
       };
     } catch (error) {
       console.error('🚨 [ERROR] 예약 처리 중 오류:', error);
-      // 롤백 처리
-      console.log('↩️ [DEBUG] 롤백 처리 시작');
-      try {
-        const data = await this.getSheetData();
-        const rowIndex = this.findBookingRow(
-          data, 
-          standardizeDate(bookingData.selectedDate!.toISOString()),
-          standardizeTime(bookingData.selectedTime!),
-          bookingData.region
-        );
-        const actualRow = rowIndex + 1;
-        
-        await this.updateCell(
-          `예약현황!C${actualRow}`,
-          '예약가능'
-        );
-        await this.updateCell(
-          `예약현황!E${actualRow}`,
-          ''
-        );
-        console.log('✅ [DEBUG] 롤백 처리 완료');
-      } catch (rollbackError) {
-        console.error('🚨 [ERROR] 롤백 처리 실패:', rollbackError);
-      }
-
       throw new Error('예약 처리 중 오류가 발생했습니다');
     }
   }
