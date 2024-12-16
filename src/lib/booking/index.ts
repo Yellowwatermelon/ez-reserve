@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
+import type { sheets_v4 } from 'googleapis';
 
-type Sheets = typeof google.sheets.v4.Sheets;
+type Sheets = sheets_v4.Sheets;
 
 export interface BookingStatus {
   isAvailable: boolean;
@@ -36,7 +37,7 @@ export interface BookingResult {
 
 class BookingManager {
   private static instance: BookingManager;
-  private sheets: any = null;
+  private sheets: sheets_v4.Sheets | null = null;
   private readonly LOCK_TIMEOUT = 30000; // 30초
   private readonly SHEET_NAME = '예약현황';  // 시트 이름
   private readonly COLUMN_RANGE = 'A:F';    // 열 범위
@@ -161,7 +162,7 @@ class BookingManager {
     const standardizedTime = standardizeTime(selectedTime);
 
     if (!standardizedDate || !standardizedTime) {
-      return '날짜 또는 시간 형���이 올바르지 않습니다';
+      return '날짜 또는 시간 형식이 올바르지 않습니다';
     }
 
     return null;
@@ -327,7 +328,7 @@ class BookingManager {
         }
       };
     } catch (error) {
-      console.error('예약 확인 �� 오류:', error);
+      console.error('예약 확인  오류:', error);
       return {
         success: false,
         error: '예약 처리 중 오류가 발생했습니다'
