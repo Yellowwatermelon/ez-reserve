@@ -228,41 +228,45 @@ export default function Booking() {
 
   const handleBooking = () => setIsModalOpen(true);
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     try {
-      if (!selectedDate || !selectedTime) {
-        setError('날짜와 시간을 선택해주세요');
+      setIsSubmitting(true);
+      setError(null);
+
+      const userRegion = decrypt(localStorage.getItem("userRegion") || "");
+      if (!userRegion) {
+        setError("지역 정보를 찾을 수 없습니다");
         return;
       }
 
-      setIsLoading(true);
-      const isoDate = selectedDate.toISOString();
-      const bookingTimestamp = new Date().toISOString();
-
-      // 데이터 저장 전 유효성 검사
-      const standardizedDate = standardizeDate(isoDate);
-      const standardizedTime = standardizeTime(selectedTime);
-      
-      if (!standardizedDate || !standardizedTime) {
-        throw new Error('날짜 또는 시간 형식이 올바르지 않습니다');
-      }
-
-      // 예약 데이터 저장
-      localStorage.setItem("bookingDate", encrypt(standardizedDate));
-      localStorage.setItem("bookingTime", encrypt(standardizedTime));
-      localStorage.setItem("bookingTimestamp", encrypt(bookingTimestamp));
-      
-      console.log('📝 [DEBUG] 예약 데이터 저장:', {
-        date: standardizedDate,
-        time: standardizedTime,
-        timestamp: bookingTimestamp
+      const response = await fetch('/api/booking/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+        body: JSON.stringify({
+          selectedDate,
+          selectedTime,
+          region: userRegion
+        })
       });
 
-      router.push("/confirm");
+      const result = await response.json();
+
+      if (result.success) {
+        router.push('/complete');
+      } else {
+        setError(result.error || '예약 처리 중 오류가 발생했습니다');
+        setIsModalOpen(false);
+        await fetchSchedule(); // 예약 실패 시 스케줄 새로고침
+      }
     } catch (error) {
-      console.error('예약 확인 중 오류:', error);
+      console.error('예약 처리 중 오류:', error);
       setError('예약 처리 중 오류가 발생했습니다');
-      setIsLoading(false);
+      setIsModalOpen(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -338,15 +342,17 @@ export default function Booking() {
               <p className="mb-4 text-xl font-bold">선택 예약일 확인</p>
               <div className="mb-6 space-y-2">
                 <p>날짜: {selectedDate ? 
-                  `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}�� (${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]})` 
-                  : ""}</p>
+                  `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 (${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]})` 
+                  : ""}
+                </p>
                 <p>시간: {selectedTime ? 
                   new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString('ko-KR', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                   }) 
-                  : ""}</p>
+                  : ""}
+                </p>
               </div>
               <div className="flex justify-end space-x-2">
                 <Button
