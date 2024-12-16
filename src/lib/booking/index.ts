@@ -171,7 +171,9 @@ class BookingManager {
       return '날짜와 시간을 선택해주세요';
     }
 
-    const standardizedDate = standardizeDate(selectedDate.toISOString());
+    // 문자열로 들어온 날짜를 Date 객체로 변환
+    const dateObj = new Date(selectedDate);
+    const standardizedDate = standardizeDate(dateObj.toISOString());
     const standardizedTime = standardizeTime(selectedTime);
 
     if (!standardizedDate || !standardizedTime) {
@@ -227,7 +229,8 @@ class BookingManager {
       }
 
       const { selectedDate, selectedTime, region } = bookingData;
-      const standardizedDate = standardizeDate(selectedDate!.toISOString());
+      const dateObj = new Date(selectedDate!);  // 문자열을 Date 객체로 변환
+      const standardizedDate = standardizeDate(dateObj.toISOString());
       const standardizedTime = standardizeTime(selectedTime!);
       const bookingTimestamp = new Date().toISOString();
       
