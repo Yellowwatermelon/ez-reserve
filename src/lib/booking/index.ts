@@ -286,7 +286,7 @@ class BookingManager {
         }
       };
     } catch (error) {
-      console.error('🚨 [ERROR] 예약 ��리 중 오류:', error);
+      console.error('🚨 [ERROR] 예약 처리 중 오류:', error);
       // 롤백 처리
       console.log('↩️ [DEBUG] 롤백 처리 시작');
       try {
@@ -331,7 +331,7 @@ class BookingManager {
         throw new Error('예약 데이터가 없습니다');
       }
 
-      // 암호화된 예약 데이터 ���환
+      // 암호화된 예약 데이터 반환
       return {
         success: true,
         data: {
@@ -341,7 +341,7 @@ class BookingManager {
         }
       };
     } catch (error) {
-      console.error('예약 확인  오류:', error);
+      console.error('예약 확인 중 오류:', error);
       return {
         success: false,
         error: '예약 처리 중 오류가 발생했습니다'
