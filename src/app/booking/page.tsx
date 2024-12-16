@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/common/Layout";
 import Calendar from "@/components/ui/Calendar";
@@ -35,79 +35,125 @@ export default function Booking() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const fetchSchedule = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        await delay(1000);
-        
-        const userRegion = decrypt(localStorage.getItem("userRegion") || "");
-        if (!userRegion) {
-          setError("지역 정보를 찾을 수 없습니다");
-          setIsLoading(false);
-          return;
-        }
-
-        const response = await fetch(`/api/schedule?region=${encodeURIComponent(userRegion)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.NEXT_PUBLIC_API_KEY || ''
-          }
+  const clearScheduleCache = () => {
+    // 스케줄 관련 캐시 데이터 초기화
+    localStorage.removeItem("scheduleData");
+    sessionStorage.removeItem("scheduleData");
+    
+    // 브라우저 캐시 초기화 시도
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          caches.delete(name);
         });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('🚨 [ERROR] API 호출 실패:', errorData);
-          throw new Error(errorData.error || "스케줄 데이터를 불러올 수 없습니다.");
-        }
+      });
+    }
+  };
 
-        const { data, error }: APIResponse = await response.json();
-        if (error) {
-          throw new Error(error);
-        }
-        if (!data || !Array.isArray(data)) {
-          throw new Error("스케줄 데이터가 없습니다");
-        }
-
-        const now = new Date();
-        const filteredData = data.filter((item: ScheduleItem) => {
-          const itemDate = new Date(`${item.날짜} ${item.시간}`);
-          return itemDate > now;
-        });
-
-        const normalizedData = filteredData.map((item: ScheduleItem) => ({
-          ...item,
-          날짜: standardizeDate(item.날짜),
-          시간: standardizeTime(item.시간)
-        }));
-
-        setScheduleData(normalizedData);
-
-        if (normalizedData.length > 0) {
-          const earliestDate = normalizedData[0].날짜;
-          const timesForEarliestDate = normalizedData
-            .filter((item: ScheduleItem) => item.날짜 === earliestDate)
-            .map((item: ScheduleItem) => item.시간)
-            .sort();
-
-          setSelectedDate(new Date(earliestDate));
-          setSelectedTimes(timesForEarliestDate);
-          setSelectedTime(timesForEarliestDate[0] || null);
-          setCurrentDate(new Date(earliestDate));
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다";
-        console.error("스��줄 데이터를 가져오는 중 오류 발생:", errorMessage);
-        setError(errorMessage);
-      } finally {
-        setIsLoading(false);
+  const fetchSchedule = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 캐시 초기화
+      clearScheduleCache();
+      
+      await delay(1000);
+      
+      const userRegion = decrypt(localStorage.getItem("userRegion") || "");
+      if (!userRegion) {
+        setError("지역 정보를 찾을 수 없습니다");
+        return;
       }
-    };
 
-    fetchSchedule();
+      const response = await fetch(`/api/schedule?region=${encodeURIComponent(userRegion)}&t=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('🚨 [ERROR] API 호출 실패:', errorData);
+        throw new Error(errorData.error || "스케줄 데이터를 불러올 수 없습니다.");
+      }
+
+      const { data, error }: APIResponse = await response.json();
+      if (error) {
+        throw new Error(error);
+      }
+      if (!data || !Array.isArray(data)) {
+        throw new Error("스케줄 데이터가 없습니다");
+      }
+
+      console.log('📊 [DEBUG] 원본 스케줄 데이터:', data);
+
+      // 서버 간 기준으로 필터링 (KST)
+      const now = new Date();
+      now.setHours(now.getHours() + 9); // KST로 변환
+
+      const filteredData = data.filter((item: ScheduleItem) => {
+        try {
+          const [year, month, day] = item.날짜.split('-').map(Number);
+          const [hour, minute] = item.시간.split(':').map(Number);
+          const itemDate = new Date(year, month - 1, day, hour, minute);
+          return itemDate > now;
+        } catch (error) {
+          console.error('🚨 [ERROR] 날짜 처리 중 오류:', { item, error });
+          return false;
+        }
+      });
+
+      console.log('📊 [DEBUG] 필터링된 스케줄 데이터:', filteredData);
+
+      const normalizedData = filteredData.map((item: ScheduleItem) => {
+        try {
+          return {
+            ...item,
+            날짜: standardizeDate(item.날짜),
+            시간: standardizeTime(item.시간)
+          };
+        } catch (error) {
+          console.error('🚨 [ERROR] 데이터 정규화 중 오류:', { item, error });
+          return item;
+        }
+      });
+
+      console.log('📊 [DEBUG] 정규화된 스케줄 데이터:', normalizedData);
+
+      setScheduleData(normalizedData);
+
+      if (normalizedData.length > 0) {
+        const earliestDate = normalizedData[0].날짜;
+        const timesForEarliestDate = normalizedData
+          .filter((item: ScheduleItem) => item.날짜 === earliestDate)
+          .map((item: ScheduleItem) => item.시간)
+          .sort();
+
+        console.log('첫 번째 날짜의 시간대:', timesForEarliestDate); // 디버깅용
+
+        setSelectedDate(new Date(earliestDate));
+        setSelectedTimes(timesForEarliestDate);
+        if (timesForEarliestDate.length > 0) {
+          setSelectedTime(timesForEarliestDate[0]);
+        }
+        setCurrentDate(new Date(earliestDate));
+      }
+    } catch (error) {
+      console.error("스케줄 데이터를 가져오는 중 오류 발생:", error);
+      setError(error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
 
   const formatModalDate = (date: Date): string => {
     const options: Intl.DateTimeFormatOptions = {
@@ -132,16 +178,24 @@ export default function Booking() {
     }
   };
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = async (date: Date) => {
     try {
       setSelectedDate(date);
       setSelectedTime(null);
+      
+      // API를 다시 호출하지 않고 기존 scheduleData에서 필터링
       const standardizedDate = standardizeDate(date.toISOString());
       const times = scheduleData
         .filter((row) => row.날짜 === standardizedDate)
         .map((row) => row.시간)
         .sort();
+      
+      console.log('선택된 날짜의 시간대:', times);
+      
       setSelectedTimes(times);
+      if (times.length > 0) {
+        setSelectedTime(times[0]);
+      }
     } catch (error) {
       console.error('날짜 선택 처리 중 오류:', error);
       setError('날짜 선택 중 오류가 발생했습니다');
