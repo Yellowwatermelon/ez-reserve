@@ -73,23 +73,14 @@ const releaseLock = (key: string): void => {
   console.log(`🔓 [DEBUG] 락 해제 완료: ${key}`);
 };
 
-// 지역별일정 시트에서 예약 상태 업데이트
+// 지역별일정 시���에서 예약 상태 업데이트
 const updateScheduleStatus = async (
   sheets: any,
   spreadsheetId: string,
   data: BookingRequestData
 ): Promise<void> => {
-  const lockKey = `${data.region}-${data.date}-${data.time}`;
-  let hasLock = false;
-
   try {
-    // 1. 락 획득
-    hasLock = await acquireLock(lockKey);
-    if (!hasLock) {
-      throw new Error("Failed to acquire lock");
-    }
-
-    // 2. 지역별일정 시트에서 해당 시간대 찾기
+    // 1. 지역별일정 시트에서 해당 시간대 찾기
     const scheduleResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: "지역별일정!A:D",
@@ -103,7 +94,7 @@ const updateScheduleStatus = async (
     const standardizedInputDate = standardizeDate(data.date);
     const standardizedInputTime = standardizeTime(data.time);
 
-    // 3. 해당 시간대 행 찾기
+    // 2. 해당 시간대 행 찾기
     const rowIndex = rows.findIndex((row: string[]) => {
       try {
         return row[0] === data.region &&
@@ -122,13 +113,13 @@ const updateScheduleStatus = async (
     const scheduleRowIndex = rowIndex + 1;
     const currentStatus = rows[rowIndex][3];
 
-    // 4. 이미 예약된 경우 확인
+    // 3. 이미 예약된 경우 확인
     if (currentStatus === "예약완료") {
       throw new Error("Time slot already booked");
     }
 
-    // 5. 상태 업데이트
-    console.log(`🔒 [DEBUG] 예약 상태 업데이트 시작 - Row: ${scheduleRowIndex}`);
+    // 4. 상태 업데이트
+    console.log(`📝 [DEBUG] 예약 상태 업데이트 시작 - Row: ${scheduleRowIndex}`);
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `지역별일정!D${scheduleRowIndex}`,
@@ -138,21 +129,10 @@ const updateScheduleStatus = async (
       }
     });
 
-    // 6. 업데이트 확인
-    const verifyResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `지역별일정!D${scheduleRowIndex}`,
-    });
-
-    if (verifyResponse.data?.values?.[0]?.[0] !== "예약완료") {
-      throw new Error("예약 상태 업데이트 실패");
-    }
-
     console.log(`✅ [DEBUG] 예약 상태 업데이트 완료 - Row: ${scheduleRowIndex}`);
-  } finally {
-    if (hasLock) {
-      releaseLock(lockKey);
-    }
+  } catch (error) {
+    console.error(`🚨 [ERROR] 예약 상태 업데이트 실패:`, error);
+    throw error;
   }
 };
 
