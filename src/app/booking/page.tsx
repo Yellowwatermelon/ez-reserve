@@ -258,6 +258,7 @@ export default function Booking() {
         timestamp: bookingTimestamp
       });
 
+      setIsModalOpen(false);
       router.push("/confirm");
     } catch (error) {
       console.error('예약 확인 중 오류:', error);
