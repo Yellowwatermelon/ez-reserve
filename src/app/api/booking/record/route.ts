@@ -136,6 +136,16 @@ const updateScheduleStatus = async (
   }
 };
 
+// 전화번호 형식 통일 함수 추가
+const formatPhoneNumber = (phone: string): string => {
+  // 숫자만 추출
+  const numbers = phone.replace(/[^0-9]/g, '');
+  // 11자리가 아니면 원본 반환
+  if (numbers.length !== 11) return phone;
+  // 010-1234-5678 형식으로 변환
+  return numbers.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+};
+
 // 예약확정 시트에 예약 정보 기록
 const recordBookingInfo = async (
   sheets: any,
@@ -143,7 +153,8 @@ const recordBookingInfo = async (
   data: BookingRequestData,
   timestamp: string
 ): Promise<void> => {
-  console.log(`📝 [DEBUG] 예약 정보 기록 시작 - 이름: ${data.name}, 전화번호: ${data.phone.slice(-4)}`);
+  const formattedPhone = formatPhoneNumber(data.phone);
+  console.log(`📝 [DEBUG] 예약 정보 기록 시작 - 이름: ${data.name}, 전화번호: ${formattedPhone}`);
   
   // 1. 예약확정 시트에서 사용자 정보 확인
   const response = await sheets.spreadsheets.values.get({
@@ -158,15 +169,16 @@ const recordBookingInfo = async (
   const rows = response.data.values;
   
   // 2. 전화번호(B열)와 이름(A열) 모두 일치하는 행 찾기
-  const rowIndex = rows.findIndex((row: string[]) => 
-    row && row[1] === data.phone && row[0] === data.name
-  );
+  const rowIndex = rows.findIndex((row: string[]) => {
+    const rowFormattedPhone = formatPhoneNumber(row[1] || '');
+    return row && rowFormattedPhone === formattedPhone && row[0] === data.name;
+  });
 
   // 3. 사용자 정보가 없는 경우
   if (rowIndex === -1) {
     console.log(`⚠️ [ERROR] 계약자 정보를 찾을 수 없음:`, {
       name: data.name,
-      phone: data.phone.slice(-4)
+      phone: formattedPhone
     });
     throw new Error("계약자 정보를 찾을 수 없습니다");
   }
@@ -175,7 +187,7 @@ const recordBookingInfo = async (
   if (rows[rowIndex][4]) {
     console.log(`⚠️ [ERROR] 이미 예약이 존재함:`, {
       name: data.name,
-      phone: data.phone.slice(-4),
+      phone: formattedPhone,
       existingBooking: rows[rowIndex][4]
     });
     throw new Error("이미 예약이 존재합니다");
