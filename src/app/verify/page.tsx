@@ -71,76 +71,46 @@ export default function Verify() {
     return { isValid: true };
   };
 
-  const handleSubmit = async () => {
+  const handleVerify = async () => {
     try {
       setLoading(true);
-      await delay(1000);
+      setShowErrorMessage(null);
+
       const validation = validateForm(name, phone);
       if (!validation.isValid && validation.error) {
         setShowErrorMessage(validation.error);
         setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
-        setLoading(false);
         return;
       }
 
-      const cleanPhone = phone.replace(/-/g, "");
-      
-      const response = await fetch("/api/user-data", {
-        method: 'GET',
+      const response = await fetch('/api/verify', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || ''
-        }
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+        body: JSON.stringify({
+          name,
+          phone: phone.replace(/-/g, ''),
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('🚨 [ERROR] API 호출 실패:', errorData);
-        setShowErrorMessage(ERROR_MESSAGES.FETCH_ERROR);
+      const data = await response.json();
+
+      if (response.status === 200) {
+        localStorage.setItem('userName', encrypt(name));
+        localStorage.setItem('userPhone', encrypt(phone));
+        localStorage.setItem('userRegion', encrypt(data.region));
+        
+        router.push('/booking');
+      } else {
+        setShowErrorMessage(data.error || '예약 확인 중 오류가 발생했습니다');
         setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
-        setLoading(false);
-        return;
       }
-
-      const { data: userData } = await response.json();
-      if (!userData || !Array.isArray(userData)) {
-        console.error('🚨 [ERROR] 잘못된 데이터 형식:', userData);
-        setShowErrorMessage(ERROR_MESSAGES.FETCH_ERROR);
-        setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
-        setLoading(false);
-        return;
-      }
-
-      console.log('📡 [DEBUG] 사용자 데이터:', userData);
-
-      const user = userData.find((row) => row.phone === cleanPhone);
-      console.log('🔍 [DEBUG] Found user:', user);
-
-      if (!user || user.name !== name) {
-        setShowErrorMessage(ERROR_MESSAGES.NO_USER);
-        setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
-        setLoading(false);
-        return;
-      }
-
-      localStorage.setItem("userName", encrypt(name));
-      localStorage.setItem("userPhone", encrypt(cleanPhone));
-      localStorage.setItem("userRegion", encrypt(user.region));
-
-      if (user.confirmation === "OK") {
-        setShowErrorMessage(ERROR_MESSAGES.ALREADY_BOOKED);
-        setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(false);
-      router.push("/booking");
     } catch (error) {
-      console.error('API Error:', error);
-      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다";
-      setShowErrorMessage(errorMessage);
-      setTimeout(() => setShowErrorMessage(null), 2000);
+      console.error('예약 확인 중 오류:', error);
+      setShowErrorMessage('예약 확인 중 오류가 발생했습니다');
+      setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
     } finally {
       setLoading(false);
     }
@@ -208,7 +178,7 @@ export default function Verify() {
 
           <div className="fixed bottom-0 left-0 w-full bg-white p-4">
             <Button
-              onClick={handleSubmit}
+              onClick={handleVerify}
               className={`w-full text-lg py-4 transition-all ${
                 loading
                   ? "bg-secondary text-white opacity-50 cursor-not-allowed"
