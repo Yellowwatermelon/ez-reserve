@@ -127,6 +127,11 @@ class BookingManager {
       });
 
       const sheets = await this.initSheets();
+      
+      if (!sheets) {
+        throw new Error('Google Sheets 클라이언트 초기화 실패');
+      }
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
         range: actualRange,
@@ -281,7 +286,7 @@ class BookingManager {
         }
       };
     } catch (error) {
-      console.error('🚨 [ERROR] 예약 처리 중 오류:', error);
+      console.error('🚨 [ERROR] 예약 ��리 중 오류:', error);
       // 롤백 처리
       console.log('↩️ [DEBUG] 롤백 처리 시작');
       try {
@@ -326,7 +331,7 @@ class BookingManager {
         throw new Error('예약 데이터가 없습니다');
       }
 
-      // 암호화된 예약 데이터 반환
+      // 암호화된 예약 데이터 ���환
       return {
         success: true,
         data: {
