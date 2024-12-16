@@ -1,7 +1,6 @@
-import type { Sheets } from 'googleapis';
-import { getSheets } from '@/utils/sheets';
-import { standardizeDate, standardizeTime } from '@/utils/date';
-import type { ScheduleItem } from '@/types/schedule';
+import { google } from 'googleapis';
+
+type Sheets = typeof google.sheets.v4.Sheets;
 
 export interface BookingStatus {
   isAvailable: boolean;
@@ -37,7 +36,7 @@ export interface BookingResult {
 
 class BookingManager {
   private static instance: BookingManager;
-  private sheets: Sheets.Sheets | null = null;
+  private sheets: any = null;
   private readonly LOCK_TIMEOUT = 30000; // 30초
   private readonly SHEET_NAME = '예약현황';  // 시트 이름
   private readonly COLUMN_RANGE = 'A:F';    // 열 범위
@@ -162,7 +161,7 @@ class BookingManager {
     const standardizedTime = standardizeTime(selectedTime);
 
     if (!standardizedDate || !standardizedTime) {
-      return '날짜 또는 시간 형식이 올바르지 않습니다';
+      return '날짜 또는 시간 형���이 올바르지 않습니다';
     }
 
     return null;
