@@ -293,6 +293,75 @@ export default function Confirm() {
     }
   };
 
+  const handleBooking = async () => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const bookingDate = decrypt(localStorage.getItem("bookingDate") || "");
+      const bookingTime = decrypt(localStorage.getItem("bookingTime") || "");
+      const userRegion = decrypt(localStorage.getItem("userRegion") || "");
+      const userName = decrypt(localStorage.getItem("userName") || "");
+      const userPhone = decrypt(localStorage.getItem("userPhone") || "");
+
+      if (!bookingDate || !bookingTime || !userRegion || !userName || !userPhone) {
+        throw new Error("예약 정보가 유효하지 않습니다");
+      }
+
+      // 시간대 유효성 재확인
+      const scheduleResponse = await fetch(`/api/schedule?region=${encodeURIComponent(userRegion)}&t=${Date.now()}`, {
+        headers: {
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+        }
+      });
+
+      if (!scheduleResponse.ok) {
+        throw new Error("시간대 확인 중 오류가 발생했습니다");
+      }
+
+      const scheduleData = await scheduleResponse.json();
+      const isTimeSlotAvailable = scheduleData.data?.some((slot: any) => 
+        slot.날짜 === bookingDate && 
+        slot.시간 === bookingTime && 
+        slot.지역 === userRegion &&
+        slot.상태 !== '예약완료'
+      );
+
+      if (!isTimeSlotAvailable) {
+        throw new Error("선택하신 시간대는 이미 예약되었습니다");
+      }
+
+      // 예약 처리 진행
+      const response = await fetch("/api/booking/record", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+        body: JSON.stringify({
+          date: bookingDate,
+          time: bookingTime,
+          region: userRegion,
+          name: userName,
+          phone: userPhone,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "예약 처리 중 오류가 발생했습니다");
+      }
+
+      router.push("/complete");
+    } catch (error) {
+      console.error("예약 처리 중 오류:", error);
+      setError(error instanceof Error ? error.message : "예약 처리 중 오류가 발생했습니다");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading || currentStep < 3) {
     return (
       <LoadingScreen 
