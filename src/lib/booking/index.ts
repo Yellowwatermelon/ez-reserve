@@ -191,7 +191,9 @@ class BookingManager {
       }
 
       const { selectedDate, selectedTime, region } = bookingData;
-      const standardizedDate = standardizeDate(selectedDate!.toISOString());
+      // 문자열을 Date 객체로 변환
+      const dateObj = new Date(selectedDate!);
+      const standardizedDate = standardizeDate(dateObj.toISOString());
       const standardizedTime = standardizeTime(selectedTime!);
 
       const data = await this.getSheetData();
@@ -203,14 +205,9 @@ class BookingManager {
 
       const row = data[rowIndex];
       const status = row[2]; // 예약상태
-      const lockTimestamp = row[4]; // 잠금시간
 
       if (status === '예약완료') {
         return { isAvailable: false, message: '이미 예약된 시간입니다' };
-      }
-
-      if (status === '예약중' && lockTimestamp && !this.isLockExpired(lockTimestamp)) {
-        return { isAvailable: false, message: '다른 사용자가 예약을 진행중입니다' };
       }
 
       return { isAvailable: true };
