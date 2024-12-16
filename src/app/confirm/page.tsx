@@ -62,6 +62,7 @@ export default function Confirm() {
   const router = useRouter();
   const pageRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingData, setBookingData] = useState<BookingRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
