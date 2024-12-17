@@ -1,3 +1,5 @@
+import { ScheduleItem } from './schedule';
+
 export interface UserData {
   name: string;
   email: string;
