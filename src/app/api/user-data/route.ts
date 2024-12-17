@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import type { SheetApiResponse } from "@/types/api";
 import { getSheets } from "@/utils/sheets";
+import type { SheetApiResponse } from "@/types/api";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
@@ -47,6 +47,10 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
     const sheets = await getSheets();
     const response = await fetchUserDataWithRetry(sheets, spreadsheetId);
 
+    if (!response) {
+      throw new Error("Failed to fetch user data after retries");
+    }
+
     const rows = response.data.values;
 
     if (!rows || rows.length === 0) {
@@ -71,7 +75,7 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
     return NextResponse.json({ 
       success: true,
       data,
-      error: null
+      error: undefined
     });
   } catch (error) {
     console.error('🚨 [ERROR] 사용자 데이터 조회 실패:', error);
