@@ -30,7 +30,11 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
     if (apiKey !== process.env.NEXT_PUBLIC_API_KEY) {
       console.error('🚨 [ERROR] 잘못된 API 키:', apiKey);
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { 
+          success: false,
+          error: 'Unauthorized',
+          data: null 
+        },
         { status: 401 }
       );
     }
