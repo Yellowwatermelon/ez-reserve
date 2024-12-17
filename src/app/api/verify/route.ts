@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { getSheets } from "@/utils/sheets";
+import { NextResponse } from 'next/server';
+import { getSheets } from '@/utils/sheets';
 
 const LOG_SHEET_NAME = '조회이력'; // 조회 이력을 저장할 시트 이름
 
@@ -45,8 +45,8 @@ export async function POST(request: Request) {
     }
 
     const { name, phone } = await request.json();
-    
     const sheets = await getSheets();
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range: "문자발송!A:E",
