@@ -56,9 +56,8 @@ export default function Booking() {
       setError(null);
       
       // 캐시 초기화
-      clearScheduleCache();
-      
-      await delay(1000);
+      localStorage.removeItem("scheduleData");
+      sessionStorage.removeItem("scheduleData");
       
       const userRegion = decrypt(localStorage.getItem("userRegion") || "");
       if (!userRegion) {
@@ -66,15 +65,23 @@ export default function Booking() {
         return;
       }
 
-      const response = await fetch(`/api/schedule?region=${encodeURIComponent(userRegion)}&t=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+      const timestamp = Date.now();
+      const random = Math.random();
+      
+      const response = await fetch(
+        `/api/schedule?region=${encodeURIComponent(userRegion)}&t=${timestamp}&r=${random}`, 
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.NEXT_PUBLIC_API_KEY || '',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store',
+          next: { revalidate: 0 }
         }
-      });
+      );
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -159,6 +166,15 @@ export default function Booking() {
   useEffect(() => {
     fetchSchedule();
   }, [fetchSchedule]);
+
+  // 컴포넌트 언마운트 시 클린업
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem("scheduleData");
+      sessionStorage.removeItem("scheduleData");
+      setScheduleData([]);
+    };
+  }, []);
 
   const formatModalDate = (date: Date): string => {
     const options: Intl.DateTimeFormatOptions = {
@@ -267,14 +283,55 @@ export default function Booking() {
     }
   };
 
+  const formatBookingDateTime = (errorMessage: string) => {
+    if (errorMessage.includes('이미 예약이 존재합니다')) {
+      const date = decrypt(localStorage.getItem('bookingDate') || '');
+      const time = decrypt(localStorage.getItem('bookingTime') || '');
+      if (date && time) {
+        const formattedDate = new Date(date).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        const formattedTime = new Date(`2000-01-01T${time}`).toLocaleTimeString('ko-KR', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        return `${formattedDate} ${formattedTime}`;
+      }
+    }
+    return errorMessage;
+  };
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, error.includes('이미 예약이 존재합니다') ? 10000 : 2000);  // 이미 예약 존재 시 10초, 나머지는 2초
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   return (
     <Layout>
       <div className="min-h-screen flex flex-col">
         <div className="relative flex-grow">
           {isLoading && <LoadingScreen message="예약 정보를 처리하고 있습니다" blur={true} />}
           {error && (
-            <div className="fixed top-24 left-0 right-0 mx-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
-              <p>{error}</p>
+            <div className={`fixed top-24 left-0 right-0 mx-4 ${
+              error.includes('이미 예약이 존재합니다') 
+                ? 'bg-green-500 text-white' 
+                : 'bg-red-100 border border-red-400 text-red-700'
+              } px-4 py-3 rounded z-50`}>
+              {error.includes('이미 예약이 존재합니다') ? (
+                <>
+                  <p className="mb-1">이미 예약하셨습니다.</p>
+                  <p>{formatBookingDateTime(error)}</p>
+                </>
+              ) : (
+                <p>{error}</p>
+              )}
             </div>
           )}
           <div className="flex-grow overflow-y-auto p-4">

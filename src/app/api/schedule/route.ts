@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
     // 1. 지역별 일정 조회 (전체 데이터)
     const scheduleResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'지역별일정'!A2:D",  // 헤더 제외하고 데이터만 조회
+      range: "'지역별일정'!A2:D",  // 헤더 제외하고 데���터만 조회
     });
 
     const scheduleRows = scheduleResponse.data.values || [];
