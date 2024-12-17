@@ -1,19 +1,19 @@
-import { NextResponse } from 'next/server';
-import { getSheets } from '@/utils/sheets';
+import { NextResponse } from "next/server";
+import { getSheets } from "@/utils/sheets";
 
-const LOG_SHEET_NAME = '조회이력'; // 조회 이력을 저장할 시트 이름
+const LOG_SHEET_NAME = '조회이력';
 
 async function logVerification(sheets: any, userData: any) {
   try {
     const now = new Date();
-    const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // KST로 변환
+    const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
 
     const logData = [
-      kstNow.toISOString(),  // 조회 시간
-      userData.name,         // 이름
-      userData.phone,        // 전화번호
-      userData.region,       // 지역
-      'VERIFY',             // 액션 타입
+      kstNow.toISOString(),
+      userData.name,
+      userData.phone,
+      userData.region,
+      'VERIFY',
     ];
 
     await sheets.spreadsheets.values.append({
@@ -28,13 +28,11 @@ async function logVerification(sheets: any, userData: any) {
     console.log('✅ [DEBUG] 조회 이력 저장 완료:', logData);
   } catch (error) {
     console.error('🚨 [ERROR] 조회 이력 저장 실패:', error);
-    // 이력 저장 실패는 전체 프로세스를 중단시키지 않음
   }
 }
 
 export async function POST(request: Request) {
   try {
-    // API 키 확인
     const apiKey = request.headers.get('x-api-key');
     if (apiKey !== process.env.NEXT_PUBLIC_API_KEY) {
       console.error('🚨 [ERROR] 잘못된 API 키:', apiKey);
@@ -45,8 +43,8 @@ export async function POST(request: Request) {
     }
 
     const { name, phone } = await request.json();
-    const sheets = await getSheets();
     
+    const sheets = await getSheets();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range: "문자발송!A:E",
@@ -78,14 +76,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 조회 이력 저장
     await logVerification(sheets, {
       name,
       phone,
       region: user[3],
     });
 
-    // 성공 응답
     return NextResponse.json({
       region: user[3]
     });
@@ -96,4 +92,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
