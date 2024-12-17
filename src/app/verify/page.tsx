@@ -95,26 +95,66 @@ export default function Verify() {
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('API Error:', result);
+        throw new Error(result.error || '예약 확인 중 오류가 발생했습니다');
+      }
+
+      if (!result.success) {
+        if (result.error.includes('이미 예약이 존재합니다')) {
+          setShowErrorMessage(`이미 예약하셨습니다.\n${formatBookingDateTime(result.data)}`);
+          return;
+        }
+        throw new Error(result.error);
+      }
 
       if (response.status === 200) {
         localStorage.setItem('userName', encrypt(name));
         localStorage.setItem('userPhone', encrypt(phone));
-        localStorage.setItem('userRegion', encrypt(data.region));
+        localStorage.setItem('userRegion', encrypt(result.data.region));
         
         router.push('/booking');
       } else {
-        setShowErrorMessage(data.error || '예약 확인 중 오류가 발생했습니다');
+        setShowErrorMessage(result.error || '예약 확인 중 오류가 발생했습니다');
         setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
       }
     } catch (error) {
       console.error('예약 확인 중 오류:', error);
-      setShowErrorMessage('예약 확인 중 오류가 발생했습니다');
+      setShowErrorMessage(error instanceof Error ? error.message : '예약 확인 중 오류가 발생했습니다');
       setTimeout(() => setShowErrorMessage(null), ERROR_DISPLAY_DURATION);
     } finally {
       setLoading(false);
     }
   };
+
+  const formatBookingDateTime = (data: { date: string; time: string }) => {
+    try {
+      const formattedDate = new Date(data.date).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const formattedTime = new Date(`2000-01-01T${data.time}`).toLocaleTimeString('ko-KR', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      return `${formattedDate} ${formattedTime}`;
+    } catch (error) {
+      return `${data.date} ${data.time}`;
+    }
+  };
+
+  useEffect(() => {
+    if (showErrorMessage) {
+      const timer = setTimeout(() => {
+        setShowErrorMessage(null);
+      }, showErrorMessage.includes('이미 예약하셨습니다') ? 10000 : 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showErrorMessage]);
 
   return (
     <>
@@ -162,17 +202,19 @@ export default function Verify() {
           </div>
 
           {showErrorMessage && (
-            <div
-              className="absolute bg-red-500 text-white text-center py-2 rounded"
-              style={{
-                width: "calc(100% - 32px)",
-                margin: "0 auto",
-                top: "calc(50% + 40px)",
-                left: "16px",
-                right: "16px",
-              }}
-            >
-              {showErrorMessage}
+            <div className={`fixed top-24 left-0 right-0 mx-4 ${
+              showErrorMessage.includes('이미 예약하셨습니다') 
+                ? 'bg-green-500 text-white' 
+                : 'bg-red-100 border border-red-400 text-red-700'
+              } px-4 py-3 rounded z-50`}>
+              {showErrorMessage.includes('이미 예약하셨습니다') ? (
+                <>
+                  <p className="mb-1">이미 예약하셨습니다.</p>
+                  <p>{showErrorMessage.split('\n')[1]}</p>
+                </>
+              ) : (
+                <p>{showErrorMessage}</p>
+              )}
             </div>
           )}
 

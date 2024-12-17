@@ -34,60 +34,71 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
     // 1. 지역별 일정 조회 (전체 데이터)
     const scheduleResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'지역별일정'!A2:D",  // 헤더 제외하고 데이터만 조회
+      range: "'지역별일정'!A2:D",
     });
 
     const scheduleRows = scheduleResponse.data.values || [];
     console.log(`📊 [DEBUG] 전체 일정 수: ${scheduleRows.length}`);
 
-    // 1. 현재 시간 (KST) 기준으로 내일 날짜 구하기
+    // 2. 현재 시간 기준 설정 (KST)
     const now = new Date();
-    now.setHours(now.getHours() + 9); // KST로 변환
-    const tomorrow = new Date(now);
+    const kstOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로 변환
+    const kstNow = new Date(now.getTime() + kstOffset);
+    
+    // 내일 자정 계산 (KST 기준)
+    const tomorrow = new Date(kstNow);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
+    
+    const tomorrowKST = new Date(tomorrow.getTime());
 
-    console.log(`🕒 [DEBUG] 필터링 기준일:`, {
-      tomorrow: tomorrow.toISOString(),
-    });
+    console.log(`🕒 [DEBUG] 현재 시간 (KST):`, kstNow.toISOString());
+    console.log(`🕒 [DEBUG] 필터링 기준일 (KST):`, tomorrowKST.toISOString());
 
-    // 2. 필터링 로직
-    const availableRows = scheduleRows.filter((row: string[]) => {
-      const [rowRegion, rowDate, rowTime, rowStatus] = row;
+    // 3. 필터링 로직
+    const availableRows = scheduleRows
+      // 1) 지역 필터링 - 정확한 매칭만 허용
+      .filter((row: string[]) => row[0] === region)
       
-      // 지역 필터링
-      if (rowRegion !== region) return false;
+      // 2) 예약완료 제외
+      .filter((row: string[]) => row[3] !== "예약완료")
       
-      // 예약완료 상태 제외
-      if (rowStatus === "예약완료") return false;
+      // 3) 시간 필터링
+      .filter((row: string[]) => {
+        if (!row[1] || !row[2]) return false;
+        
+        const [year, month, day] = row[1].split('-').map(Number);
+        const [hour, minute] = row[2].split(':').map(Number);
+        
+        if (!year || !month || !day || isNaN(hour) || isNaN(minute)) return false;
+        
+        // KST 기준으로 날짜/시간 생성
+        const rowDateTime = new Date(year, month - 1, day, hour, minute);
+        return rowDateTime >= tomorrowKST;
+      })
       
-      // 내일 이후 날짜만 포함
-      const rowDateTime = new Date(`${rowDate} ${rowTime}`);
-      return rowDateTime >= tomorrow;
-    });
+      // 4) 날짜/시간 정렬
+      .sort((a: string[], b: string[]) => {
+        const [_, dateA, timeA] = a;
+        const [__, dateB, timeB] = b;
+        const dateTimeA = new Date(`${dateA}T${timeA}:00+09:00`);
+        const dateTimeB = new Date(`${dateB}T${timeB}:00+09:00`);
+        return dateTimeA.getTime() - dateTimeB.getTime();
+      });
 
     console.log(`📊 [DEBUG] 필터링 후 사용 가능한 시간대: ${availableRows.length}`);
 
-    // 2. 날짜/시간 기준으로 정렬
-    const sortedRows = availableRows.sort((a: string[], b: string[]) => {
-      const dateTimeA = new Date(`${a[1]} ${a[2]}`);
-      const dateTimeB = new Date(`${b[1]} ${b[2]}`);
-      return dateTimeA.getTime() - dateTimeB.getTime();
-    });
-
-    // 4. ScheduleRecord 형식으로 변환
-    const formattedSchedule: ScheduleItem[] = sortedRows.map(([지역, 날짜, 시간, 상태]: [string, string, string, string]) => ({
+    // 4. 변환 및 반환
+    const formattedSchedule = availableRows.map(([지역, 날짜, 시간, 상태]) => ({
       지역,
       날짜,
       시간,
       상태: 상태 || ''
     }));
 
-    console.log(`✅ [DEBUG] 스케줄 조회 완료 - 반환할 시간대: ${formattedSchedule.length}`);
-    
-    // 샘플 데이터 로깅
     if (formattedSchedule.length > 0) {
       console.log(`📝 [DEBUG] 첫 번째 시간대:`, formattedSchedule[0]);
+      console.log(`📝 [DEBUG] 마지막 시간대:`, formattedSchedule[formattedSchedule.length - 1]);
     }
 
     return NextResponse.json({ data: formattedSchedule });

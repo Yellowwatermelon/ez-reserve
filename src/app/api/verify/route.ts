@@ -83,7 +83,10 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      region: user[3]
+      success: true,
+      data: {
+        region: user[3]
+      }
     });
   } catch (error) {
     console.error('🚨 [ERROR] 사용자 확인 실패:', error);

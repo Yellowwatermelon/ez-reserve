@@ -1,19 +1,18 @@
 export interface BookingRequestData {
   name: string;
   phone: string;
-  time: string;
-  date: string;
   region: string;
+  date: string;
+  time: string;
 }
 
 export interface BookingResponseData {
   success: boolean;
-  message?: string;
   error?: string;
-  details?: string;
+  message?: string;
+  timestamp?: string;
   requestStartTime?: string;
   requestEndTime?: string;
-  timestamp?: string;
   data?: {
     name: string;
     phone: string;

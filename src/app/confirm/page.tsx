@@ -70,7 +70,6 @@ export default function Confirm() {
 
   const recordBooking = useCallback(async (record: BookingRecord) => {
     try {
-      await delay(1000);
       console.log('📡 [DEBUG] 예약 기록 시작. 요청 데이터:', {
         name: record.name,
         phone: record.phone,
@@ -164,7 +163,7 @@ export default function Confirm() {
         return;
       }
     }
-  }, [currentStep, router]);
+  }, [router]);
 
   useEffect(() => {
     const loadBookingData = async () => {
