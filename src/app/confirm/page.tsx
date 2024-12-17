@@ -283,7 +283,7 @@ export default function Confirm() {
   const getMessage = () => {
     switch (currentStep) {
       case 1:
-        return '데이터 확인 중...';
+        return '데이터 확인 ���...';
       case 2:
         return '예약 기록 중...';
       case 3:
@@ -364,7 +364,7 @@ export default function Confirm() {
 
   const handleNext = useCallback(() => {
     // 코드 내용
-  }, [currentStep]);
+  }, []);
 
   const handlePrevious = useCallback(() => {
     // 코드 내용

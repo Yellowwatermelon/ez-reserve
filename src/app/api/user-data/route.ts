@@ -33,7 +33,7 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
         { 
           success: false,
           error: 'Unauthorized',
-          data: null 
+          data: []
         },
         { status: 401 }
       );
