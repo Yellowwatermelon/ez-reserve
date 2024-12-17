@@ -40,8 +40,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
     const scheduleRows = scheduleResponse.data.values || [];
     console.log(`📊 [DEBUG] 전체 일정 수: ${scheduleRows.length}`);
 
-    // 2. 현재 시간 이전의 시간대는 제외
+    // 1. 현재 시간 (KST) 기준으로 내일 날짜 구하기
     const now = new Date();
+    now.setHours(now.getHours() + 9); // KST로 변환
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    console.log(`🕒 [DEBUG] 필터링 기준일:`, {
+      tomorrow: tomorrow.toISOString(),
+    });
+
+    // 2. 필터링 로직
     const availableRows = scheduleRows.filter((row: string[]) => {
       const [rowRegion, rowDate, rowTime, rowStatus] = row;
       
@@ -52,23 +62,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
 
       // 예약완료 상태 제외
       if (rowStatus === "예약완료") {
-        console.log(`🔒 [DEBUG] 예약완료 상태 제외:`, {
-          region: rowRegion,
-          date: rowDate,
-          time: rowTime,
-          status: rowStatus
-        });
+        console.log(`🔒 [DEBUG] 예약완료 제외:`, { date: rowDate, time: rowTime });
         return false;
       }
 
-      // 과거 시간 제외
+      // 내일 이후 날짜만 포함
       const rowDateTime = new Date(`${rowDate} ${rowTime}`);
-      if (rowDateTime < now) {
-        console.log(`⏰ [DEBUG] 과거 시간대 제외:`, {
-          date: rowDate,
-          time: rowTime,
-          now: now.toISOString()
-        });
+      if (rowDateTime < tomorrow) {
+        console.log(`⏰ [DEBUG] 과거/당일 제외:`, { date: rowDate, time: rowTime });
         return false;
       }
 
@@ -77,12 +78,26 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
 
     console.log(`📊 [DEBUG] 필터링 후 사용 가능한 시간대: ${availableRows.length}`);
 
-    // 3. 날짜와 시간으로 정렬
-    const sortedRows = availableRows.sort((a: string[], b: string[]) => {
-      const dateA = new Date(`${a[1]} ${a[2]}`);
-      const dateB = new Date(`${b[1]} ${b[2]}`);
-      return dateA.getTime() - dateB.getTime();
-    });
+    // 3. 날짜와 시간으로 정렬하고 중복 제거
+    const uniqueTimes = new Set();
+    const sortedRows = availableRows
+      .filter((row: string[]) => {
+        const timeKey = `${row[1]}_${row[2]}`; // 날짜_시간 형식의 키
+        if (uniqueTimes.has(timeKey)) {
+          console.log(`🔄 [DEBUG] 중복 시간대 제외:`, {
+            date: row[1],
+            time: row[2]
+          });
+          return false;
+        }
+        uniqueTimes.add(timeKey);
+        return true;
+      })
+      .sort((a: string[], b: string[]) => {
+        const dateA = new Date(`${a[1]} ${a[2]}`);
+        const dateB = new Date(`${b[1]} ${b[2]}`);
+        return dateA.getTime() - dateB.getTime();
+      });
 
     // 4. ScheduleRecord 형식으로 변환
     const formattedSchedule: ScheduleItem[] = sortedRows.map(([지역, 날짜, 시간, 상태]: [string, string, string, string]) => ({
