@@ -51,7 +51,11 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
 
     if (!rows || rows.length === 0) {
       return NextResponse.json(
-        { error: "No data found" }, 
+        { 
+          success: false,
+          error: "No data found",
+          data: []
+        },
         { status: 404 }
       );
     }
@@ -64,11 +68,19 @@ export async function GET(request: Request): Promise<NextResponse<SheetApiRespon
       confirmation: row[4] || "",
     }));
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ 
+      success: true,
+      data,
+      error: null
+    });
   } catch (error) {
     console.error('🚨 [ERROR] 사용자 데이터 조회 실패:', error);
     return NextResponse.json(
-      { error: '사용자 데이터를 불러오는데 실패했습니다' },
+      { 
+        success: false,
+        error: '사용자 데이터를 불러오는데 실패했습니다',
+        data: []
+      },
       { status: 500 }
     );
   }
