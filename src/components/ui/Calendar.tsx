@@ -78,16 +78,16 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const startDate = startOfWeek(currentDate);
-  const availableDates = getAvailableDates();
+  const availableDateNumbers = getAvailableDates();
 
   return (
     <div className="calendar w-full max-w-screen-sm mx-auto">
       <div className="text-center mb-4 p-2 bg-white rounded-md shadow-sm">
-        {availableDates.length > 0 ? (
+        {availableDateNumbers.length > 0 ? (
           <>
             <span className="text-black font-bold text-lg">· 예약 가능일:</span>{" "}
             <span className="text-selected font-bold text-lg">
-              {availableDates.map((date, index) => (
+              {availableDateNumbers.map((date, index) => (
                 <React.Fragment key={date}>
                   {index > 0 && <span className="text-gray-400 mx-2">·</span>}
                   {date}일
