@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { ScheduleItem } from "@/types/schedule";
+import { standardizeDate } from "@/utils/date";
 
 interface CalendarProps {
   scheduleData: ScheduleItem[];
