@@ -222,7 +222,7 @@ export default function Booking() {
       }
     } catch (error) {
       console.error('날짜 선택 처리 중 오류:', error);
-      setError('날짜 선택 중 오류가 발생했습니다');
+      setError('날짜 선택 중 오류가 발생했습���다');
     }
   };
 
@@ -313,6 +313,11 @@ export default function Booking() {
     }
   }, [error]);
 
+  // 사용 가능한 날짜 추출
+  const availableDates = React.useMemo(() => {
+    return [...new Set(scheduleData.map(item => item.날짜))];
+  }, [scheduleData]);
+
   return (
     <Layout>
       <div className="min-h-screen flex flex-col">
@@ -350,6 +355,7 @@ export default function Booking() {
               selectedDate={selectedDate}
               onDateSelect={handleDateSelect}
               currentDate={currentDate}
+              availableDates={availableDates}
             />
             {selectedTimes.length > 0 && (
               <div className="mt-8">

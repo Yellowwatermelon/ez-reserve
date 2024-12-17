@@ -3,10 +3,11 @@
 import React from "react";
 
 interface CalendarProps {
-  scheduleData: { 지역: string; 날짜: string; 시간: string }[];
+  scheduleData: ScheduleItem[];
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
   currentDate: Date;
+  availableDates: string[];
 }
 
 const daysOfWeek = ["일", "월", "화", "수", "목", "금", "토"];
@@ -16,6 +17,7 @@ const Calendar: React.FC<CalendarProps> = ({
   selectedDate,
   onDateSelect,
   currentDate,
+  availableDates,
 }) => {
   const startOfWeek = (date: Date) => {
     const day = date.getDay();
@@ -24,24 +26,20 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const hasSchedule = (date: Date): boolean => {
-    return scheduleData.some(
-      (item) => new Date(item.날짜).toDateString() === date.toDateString()
-    );
+    const standardizedDate = standardizeDate(date.toISOString());
+    return availableDates.includes(standardizedDate);
   };
 
   const getAvailableDates = (): number[] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 날짜별로 그룹화하고 정렬
-    const availableDates = [...new Set(scheduleData.map(item => item.날짜))]
+    return availableDates
       .map(dateStr => new Date(dateStr))
       .filter(date => date >= today)
       .sort((a, b) => a.getTime() - b.getTime())
       .slice(0, 3)
       .map(date => date.getDate());
-
-    return availableDates;
   };
 
   const renderWeek = (startDate: Date) => {
