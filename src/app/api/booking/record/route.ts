@@ -73,7 +73,7 @@ const releaseLock = (key: string): void => {
   console.log(`🔓 [DEBUG] 락 해제 완료: ${key}`);
 };
 
-// 지역별일정 시���에서 예약 상태 업데이트
+// 지역별일정 시트에서 예약 상태 업데이트
 const updateScheduleStatus = async (
   sheets: any,
   spreadsheetId: string,
@@ -108,20 +108,10 @@ const updateScheduleStatus = async (
     // 3. D열 상태 업데이트
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `지역별일정!D${scheduleRowIndex}`,
+      range: `지역별일정!D${scheduleRowIndex}:E${scheduleRowIndex}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [["예약완료"]]
-      }
-    });
-
-    // 4. E열에 예약자 정보 추가
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `지역별일정!E${scheduleRowIndex}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: {
-        values: [[`${data.name} (${data.phone})`]]
+        values: [["예약완료", `${data.name} (${data.phone})`]]
       }
     });
 
