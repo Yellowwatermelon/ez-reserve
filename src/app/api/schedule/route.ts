@@ -89,11 +89,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
     console.log(`📊 [DEBUG] 필터링 후 사용 가능한 시간대: ${availableRows.length}`);
 
     // 4. 변환 및 반환
-    const formattedSchedule = availableRows.map(([지역, 날짜, 시간, 상태]) => ({
+    const formattedSchedule = availableRows.map(([지역, 날짜, 시간, 상태]: [string, string, string, string]) => ({
       지역,
       날짜,
       시간,
-      상태: 상태 || ''
+      상태
     }));
 
     if (formattedSchedule.length > 0) {
