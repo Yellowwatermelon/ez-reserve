@@ -205,16 +205,21 @@ export default function Booking() {
       setSelectedTime(null);
       
       const standardizedDate = standardizeDate(date.toISOString());
+      
+      // 선택된 날짜의 시간대만 필터링
       const times = scheduleData
-        .filter((row) => row.날짜 === standardizedDate)
-        .map((row) => row.시간)
+        .filter((item) => item.날짜 === standardizedDate)
+        .map((item) => item.시간)
         .sort((a, b) => {
           const [aHour, aMin] = a.split(':').map(Number);
           const [bHour, bMin] = b.split(':').map(Number);
           return (aHour * 60 + aMin) - (bHour * 60 + bMin);
         });
       
-      console.log('선택된 날짜의 시간대:', times);
+      console.log('선택된 날짜의 시간대:', {
+        date: standardizedDate,
+        times: times
+      });
       
       setSelectedTimes(times);
       if (times.length > 0) {
@@ -222,7 +227,7 @@ export default function Booking() {
       }
     } catch (error) {
       console.error('날짜 선택 처리 중 오류:', error);
-      setError('날짜 선택 중 오류가 발생했습���다');
+      setError('날짜 선택 중 오류가 발생했습니다');
     }
   };
 
@@ -315,7 +320,8 @@ export default function Booking() {
 
   // 사용 가능한 날짜 추출
   const availableDates = React.useMemo(() => {
-    return [...new Set(scheduleData.map(item => item.날짜))];
+    const uniqueDates = [...new Set(scheduleData.map(item => item.날짜))];
+    return uniqueDates.sort();
   }, [scheduleData]);
 
   return (

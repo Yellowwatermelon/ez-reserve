@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
     // 1. 지역별 일정 조회 (전체 데이터)
     const scheduleResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'지역별일정'!A2:D",  // 헤더 제외하고 데���터만 조회
+      range: "'지역별일정'!A2:D",  // 헤더 제외하고 데이터만 조회
     });
 
     const scheduleRows = scheduleResponse.data.values || [];
@@ -56,48 +56,24 @@ export async function GET(request: NextRequest): Promise<NextResponse<ScheduleRe
       const [rowRegion, rowDate, rowTime, rowStatus] = row;
       
       // 지역 필터링
-      if (rowRegion !== region) {
-        return false;
-      }
-
+      if (rowRegion !== region) return false;
+      
       // 예약완료 상태 제외
-      if (rowStatus === "예약완료") {
-        console.log(`🔒 [DEBUG] 예약완료 제외:`, { date: rowDate, time: rowTime });
-        return false;
-      }
-
+      if (rowStatus === "예약완료") return false;
+      
       // 내일 이후 날짜만 포함
       const rowDateTime = new Date(`${rowDate} ${rowTime}`);
-      if (rowDateTime < tomorrow) {
-        console.log(`⏰ [DEBUG] 과거/당일 제외:`, { date: rowDate, time: rowTime });
-        return false;
-      }
-
-      return true;
+      return rowDateTime >= tomorrow;
     });
 
     console.log(`📊 [DEBUG] 필터링 후 사용 가능한 시간대: ${availableRows.length}`);
 
-    // 3. 날짜와 시간으로 정렬하고 중복 제거
-    const uniqueTimes = new Set();
-    const sortedRows = availableRows
-      .filter((row: string[]) => {
-        const timeKey = `${row[1]}_${row[2]}`; // 날짜_시간 형식의 키
-        if (uniqueTimes.has(timeKey)) {
-          console.log(`🔄 [DEBUG] 중복 시간대 제외:`, {
-            date: row[1],
-            time: row[2]
-          });
-          return false;
-        }
-        uniqueTimes.add(timeKey);
-        return true;
-      })
-      .sort((a: string[], b: string[]) => {
-        const dateA = new Date(`${a[1]} ${a[2]}`);
-        const dateB = new Date(`${b[1]} ${b[2]}`);
-        return dateA.getTime() - dateB.getTime();
-      });
+    // 2. 날짜/시간 기준으로 정렬
+    const sortedRows = availableRows.sort((a: string[], b: string[]) => {
+      const dateTimeA = new Date(`${a[1]} ${a[2]}`);
+      const dateTimeB = new Date(`${b[1]} ${b[2]}`);
+      return dateTimeA.getTime() - dateTimeB.getTime();
+    });
 
     // 4. ScheduleRecord 형식으로 변환
     const formattedSchedule: ScheduleItem[] = sortedRows.map(([지역, 날짜, 시간, 상태]: [string, string, string, string]) => ({
