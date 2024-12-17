@@ -6,10 +6,21 @@ interface BookingStatus {
   message?: string;
 }
 
+interface TransactionResult {
+  success: boolean;
+  message: string;
+  data?: {
+    date: string;
+    time: string;
+    status: string;
+    timestamp: string;
+  };
+}
+
 export class BookingTransaction {
   private sheets: any = null;
   private spreadsheetId: string;
-  private static BOOKING_RANGE = '예약현황!A:F'; // 예약 시트 범위
+  private static BOOKING_RANGE = '예약현황!A:F';
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY = 1000;
 
@@ -94,55 +105,31 @@ export class BookingTransaction {
       // 1. 예약 가능 여부 확인
       const availability = await this.checkAvailability(date, time);
       if (!availability.isAvailable) {
-        return { success: false, message: availability.message || '예약할 수 없는 시간입니다' };
+        return { success: false, message: availability.message || '예약할 수 없는 시간��니다' };
       }
 
       const data = await this.getSheetData();
       const rowIndex = this.findRowIndex(data, date, time);
-      const actualRow = rowIndex + 1; // 시트의 실제 행 번호
+      const actualRow = rowIndex + 1;
 
-      // 2. 잠금 설정
-      const lockTimestamp = new Date().toISOString();
-      await this.updateCell(
-        `예약현황!C${actualRow}`,
-        '예약중'
-      );
-      await this.updateCell(
-        `예약현황!E${actualRow}`,
-        lockTimestamp
-      );
-
-      // 3. 최종 예약 처리
+      // 2. 예약 처리
       await this.updateCell(
         `예약현황!C${actualRow}`,
         '예약완료'
       );
-      await this.updateCell(
-        `예약현황!E${actualRow}`,
-        ''
-      );
 
-      return { success: true, message: '예약이 완료되었습니다' };
+      const timestamp = new Date().toISOString();
+      return { 
+        success: true, 
+        message: '예약이 완료되었습니다',
+        data: {
+          date,
+          time,
+          status: '예약완료',
+          timestamp
+        }
+      };
     } catch (error) {
-      console.error('예약 처리 중 오류:', error);
-      // 롤백 처리
-      try {
-        const data = await this.getSheetData();
-        const rowIndex = this.findRowIndex(data, date, time);
-        const actualRow = rowIndex + 1;
-        
-        await this.updateCell(
-          `예약현황!C${actualRow}`,
-          '예약가능'
-        );
-        await this.updateCell(
-          `예약현황!E${actualRow}`,
-          ''
-        );
-      } catch (rollbackError) {
-        console.error('롤백 처리 중 오류:', rollbackError);
-      }
-
       throw new Error('예약 처리 중 오류가 발생했습니다');
     }
   }
