@@ -1,44 +1,34 @@
 import { google } from 'googleapis';
-import { JWT } from 'google-auth-library';
-import type { Sheets } from 'googleapis';
+import { getSheets } from '@/utils/sheets';
 
 interface BookingStatus {
   isAvailable: boolean;
   message?: string;
 }
 
-interface TransactionResult {
-  success: boolean;
-  message: string;
-}
-
 export class BookingTransaction {
-  private sheets: Sheets.Sheets;
+  private sheets: any = null;
   private spreadsheetId: string;
-  private static LOCK_TIMEOUT = 30000; // 30초
   private static BOOKING_RANGE = '예약현황!A:F'; // 예약 시트 범위
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY = 1000;
 
   constructor() {
-    const credentials = {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    };
-
-    const auth = new JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    this.sheets = google.sheets({ version: 'v4', auth });
     this.spreadsheetId = process.env.GOOGLE_SHEET_ID || '';
+    this.initSheets();
+  }
+
+  private async initSheets() {
+    if (!this.sheets) {
+      this.sheets = await getSheets();
+    }
+    return this.sheets;
   }
 
   private async getSheetData(retryCount = 0): Promise<any[]> {
     try {
-      const response = await this.sheets.spreadsheets.values.get({
+      const sheets = await this.initSheets();
+      const response = await sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
         range: BookingTransaction.BOOKING_RANGE,
       });
@@ -55,7 +45,7 @@ export class BookingTransaction {
 
   private async updateCell(range: string, value: any, retryCount = 0): Promise<void> {
     try {
-      await this.sheets.spreadsheets.values.update({
+      await this.sheets?.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
         range,
         valueInputOption: 'USER_ENTERED',
