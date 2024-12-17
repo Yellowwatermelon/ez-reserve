@@ -83,43 +83,29 @@ const updateScheduleStatus = async (
     // 1. 지역별일정 시트에서 해당 시간대 찾기
     const scheduleResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "지역별일정!A:D",
+      range: "지역별일정!A:E",  // E열까지 범위 확장
     });
 
-    if (!scheduleResponse.data || !scheduleResponse.data.values) {
-      throw new Error("시트 데이터를 읽을 수 없습니다");
-    }
-
     const rows = scheduleResponse.data.values;
-    const standardizedInputDate = standardizeDate(data.date);
-    const standardizedInputTime = standardizeTime(data.time);
-
-    // 2. 해당 시간대 행 찾기
     const rowIndex = rows.findIndex((row: string[]) => {
       try {
         return row[0] === data.region &&
-          standardizeDate(row[1]) === standardizedInputDate &&
-          standardizeTime(row[2]) === standardizedInputTime;
+          standardizeDate(row[1]) === standardizeDate(data.date) &&
+          standardizeTime(row[2]) === standardizeTime(data.time);
       } catch (error) {
         console.error(`🚨 [ERROR] 행 데이터 처리 중 오류:`, { row, error });
         return false;
       }
     });
 
-    if (rowIndex === -1) {
-      throw new Error("예약 가능한 시간대가 아닙니다");
-    }
-
     const scheduleRowIndex = rowIndex + 1;
-    const currentStatus = rows[rowIndex][3];
 
-    // 3. 이미 예약된 경우 확인
-    if (currentStatus === "예약완료") {
-      throw new Error("Time slot already booked");
+    // 2. D열이 이미 '예약완료'인지 확인
+    if (rows[rowIndex][3] === '예약완료') {
+      throw new Error("이미 예약된 시간입니다");
     }
 
-    // 4. 상태 업데이트
-    console.log(`📝 [DEBUG] 예약 상태 업데이트 시작 - Row: ${scheduleRowIndex}`);
+    // 3. D열 상태 업데이트
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `지역별일정!D${scheduleRowIndex}`,
@@ -129,7 +115,16 @@ const updateScheduleStatus = async (
       }
     });
 
-    console.log(`✅ [DEBUG] 예약 상태 업데이트 완료 - Row: ${scheduleRowIndex}`);
+    // 4. E열에 예약자 정보 추가
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `지역별일정!E${scheduleRowIndex}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[`${data.name} (${data.phone})`]]
+      }
+    });
+
   } catch (error) {
     console.error(`🚨 [ERROR] 예약 상태 업데이트 실패:`, error);
     throw error;
