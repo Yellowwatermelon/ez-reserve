@@ -153,7 +153,7 @@ const recordBookingInfo = async (
 
   const rows = response.data.values;
   
-  // 2. 전화번호(B열)와 이름(A열) 모두 일치하는 행 찾기
+  // 2. 전화번호(B열)와 이름(A열) 모두 일치하는 행 ��기
   const rowIndex = rows.findIndex((row: string[]) => {
     const rowFormattedPhone = formatPhoneNumber(row[1] || '');
     return row && rowFormattedPhone === formattedPhone && row[0] === data.name;
@@ -222,17 +222,55 @@ export async function POST(request: Request): Promise<NextResponse<BookingRespon
     }
 
     const sheets = await getSheets();
-    
-    // 1. 먼저 지역별일정 시트 업데이트
-    console.log(`📝 [DEBUG] 지역별일정 시트 업데이트 시작`);
-    await updateScheduleStatus(sheets, spreadsheetId, data);
-    console.log(`✅ [DEBUG] 지역별일정 시트 업데이트 완료`);
 
-    // 2. 그 다음 예약확정 시트에 기록
+    // 1. 먼저 지역별일정 시트에서 해당 시간이 비어있는지 확인
+    const scheduleResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "지역별일정!A:E",
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+      // 캐시 방지를 위한 타임스탬프 파라미터 추가
+      requestParams: {
+        timestamp: Date.now()
+      }
+    });
+
+    const rows = scheduleResponse.data.values;
+    const rowIndex = rows.findIndex((row: string[]) => {
+      try {
+        return row[0] === data.region &&
+          standardizeDate(row[1]) === standardizeDate(data.date) &&
+          standardizeTime(row[2]) === standardizeTime(data.time);
+      } catch (error) {
+        console.error(`🚨 [ERROR] 행 데이터 처리 중 오류:`, { row, error });
+        return false;
+      }
+    });
+
+    const scheduleRowIndex = rowIndex + 1;
+
+    // 빈 시간이 아니면 에러
+    if (rows[rowIndex][3] === '예약완료') {
+      throw new Error("이미 예약된 시간입니다");
+    }
+
+    // 2. 예약확정 시트에 기록
     console.log(`📝 [DEBUG] 예약확정 시트 기록 시작`);
     const timestamp = formatToKoreanTimestamp(new Date());
     await recordBookingInfo(sheets, spreadsheetId, data, timestamp);
     console.log(`✅ [DEBUG] 예약확정 시트 기록 완료`);
+
+    // 3. 지역별일정 시트 상태 업데이트
+    console.log(`📝 [DEBUG] 지역별일정 시트 업데이트 시작`);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `지역별일정!D${scheduleRowIndex}:E${scheduleRowIndex}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [["예약완료", `${data.name} (${data.phone})`]]
+      }
+    });
+    console.log(`✅ [DEBUG] 지역별일정 시트 업데이트 완료`);
 
     const response: BookingResponseData = {
       success: true,
