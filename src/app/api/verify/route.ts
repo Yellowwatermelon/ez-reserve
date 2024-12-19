@@ -58,18 +58,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = rows.find((row: any[]) => 
-      row[1] === phone && row[0] === name
+    // 1. 전화번호로 먼저 사용자 찾기
+    const userByPhone = rows.find((row: any[]) => 
+      row[1] === phone
     );
 
-    if (!user) {
+    // 2. 찾은 사용자의 이름이 일치하는지 확인
+    if (!userByPhone) {
       return NextResponse.json(
         { error: "등록된 계약자 정보가 없습니다" },
         { status: 404 }
       );
     }
 
-    if (user[4] === "OK") {
+    if (userByPhone[0] !== name) {
+      return NextResponse.json(
+        { error: "등록된 계약자 정보가 없습니다" },
+        { status: 404 }
+      );
+    }
+
+    if (userByPhone[4] === "OK") {
       return NextResponse.json(
         { error: "이미 예약이 되어있습니다" },
         { status: 400 }
@@ -79,13 +88,13 @@ export async function POST(request: Request) {
     await logVerification(sheets, {
       name,
       phone,
-      region: user[3],
+      region: userByPhone[3],
     });
 
     return NextResponse.json({
       success: true,
       data: {
-        region: user[3]
+        region: userByPhone[3]
       }
     });
   } catch (error) {
