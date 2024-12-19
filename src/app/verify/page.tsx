@@ -151,7 +151,7 @@ export default function Verify() {
     if (showErrorMessage) {
       const timer = setTimeout(() => {
         setShowErrorMessage(null);
-      }, showErrorMessage.includes('이미 예약하셨습니다') ? 10000 : 2000);
+      }, showErrorMessage.includes('이미 예약하셨습니다') ? 10000 : 3000);
       return () => clearTimeout(timer);
     }
   }, [showErrorMessage]);
@@ -162,6 +162,22 @@ export default function Verify() {
         <div className="flex flex-col justify-between min-h-screen relative">
           <div className="relative flex-grow">
             {loading && <LoadingScreen message="계약자 정보 확인 중" blur={true} />}
+            {showErrorMessage && (
+              <div className={`fixed top-36 left-0 right-0 mx-4 text-center ${
+                showErrorMessage.includes('이미 예약하셨습니다') 
+                  ? 'bg-green-600 text-white'
+                  : 'bg-red-600 text-white'
+                } px-4 py-3 rounded z-50 shadow-md`}>
+                {showErrorMessage.includes('이미 예약하셨습니다') ? (
+                  <>
+                    <p className="mb-1 font-medium">이미 예약하셨습니다.</p>
+                    <p>{showErrorMessage.split('\n')[1]}</p>
+                  </>
+                ) : (
+                  <p className="font-medium">{showErrorMessage}</p>
+                )}
+              </div>
+            )}
             <div className="flex-grow p-4 space-y-6">
               <div className="h-20"></div>
               <div className="space-y-4">
@@ -200,23 +216,6 @@ export default function Verify() {
               </div>
             </div>
           </div>
-
-          {showErrorMessage && (
-            <div className={`fixed top-24 left-0 right-0 mx-4 ${
-              showErrorMessage.includes('이미 예약하셨습니다') 
-                ? 'bg-green-500 text-white' 
-                : 'bg-red-100 border border-red-400 text-red-700'
-              } px-4 py-3 rounded z-50`}>
-              {showErrorMessage.includes('이미 예약하셨습니다') ? (
-                <>
-                  <p className="mb-1">이미 예약하셨습니다.</p>
-                  <p>{showErrorMessage.split('\n')[1]}</p>
-                </>
-              ) : (
-                <p>{showErrorMessage}</p>
-              )}
-            </div>
-          )}
 
           <div className="fixed bottom-0 left-0 w-full bg-white p-4">
             <Button
