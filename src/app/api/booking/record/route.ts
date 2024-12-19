@@ -73,7 +73,7 @@ const releaseLock = (key: string): void => {
   console.log(`🔓 [DEBUG] 락 해제 완료: ${key}`);
 };
 
-// 지역별일정 시트에서 예약 상태 업데이트
+// 지역별일정 시���에서 예약 상태 업데이트
 const updateScheduleStatus = async (
   sheets: any,
   spreadsheetId: string,
@@ -153,7 +153,7 @@ const recordBookingInfo = async (
 
   const rows = response.data.values;
   
-  // 2. 전화번호(B열)와 이름(A열) 모두 일치하는 행 ��기
+  // 2. 전화번호(B열)와 이름(A열) 모두 일치하는 행 찾기
   const rowIndex = rows.findIndex((row: string[]) => {
     const rowFormattedPhone = formatPhoneNumber(row[1] || '');
     return row && rowFormattedPhone === formattedPhone && row[0] === data.name;
@@ -228,12 +228,12 @@ export async function POST(request: Request): Promise<NextResponse<BookingRespon
       spreadsheetId,
       range: "지역별일정!A:E",
       valueRenderOption: 'UNFORMATTED_VALUE',
-      dateTimeRenderOption: 'FORMATTED_STRING',
-      // 캐시 방지를 위한 타임스탬프 파라미터 추가
-      requestParams: {
-        timestamp: Date.now()
-      }
+      dateTimeRenderOption: 'FORMATTED_STRING'
     });
+
+    if (!scheduleResponse.data || !scheduleResponse.data.values) {
+      throw new Error("시트 데이터를 읽을 수 없습니다");
+    }
 
     const rows = scheduleResponse.data.values;
     const rowIndex = rows.findIndex((row: string[]) => {
